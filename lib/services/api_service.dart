@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+import '../models/webtoon_model.dart';
 
 class ApiService {
-  final String baseUrl = "https://webtoon-crawler.nomadcoders.workers.dev";
-  final String today = "today";
+  static const String baseUrl =
+      "https://webtoon-crawler.nomadcoders.workers.dev";
+  static const String today = "today";
 
-  void getTodayToons() async {
+  static Future<List<WebtoonModel>> getTodayToons() async {
+    //위와 같이 void가 아닌, 타입을 명명 해줄경우, async를 사용하면 에러가 발생한다.
+    //에러 발생을 막기 위해선 Future 키워드를 사용한다.
+    List<WebtoonModel> webtoonInstance = [];
     final url = Uri.parse('$baseUrl/$today');
     final response = await http.get(url);
 
@@ -15,8 +22,18 @@ class ApiService {
     //또한 return type 이 future인 경우도 비동기 통신으로 응답을 받는다.
 
     if (response.statusCode == 200) {
-      print(response.body);
-      return;
+      final List<dynamic> webtoons = jsonDecode(response.body);
+      //현재 api를 호출 했을때 넘어오는 데이터의 타입은 리스트 안에 든 객체 형태이다.
+      //그렇기 때문에 webtoons 안에는 응답값을 디코딩 해서 담아주고, 타입은 리스트로 명명한다.
+      //참고로 dynamic은 어떤 타입이라도 받을 수 있다.
+      for (var webtoon in webtoons) {
+        final instance = WebtoonModel.fromJson(webtoon);
+        webtoonInstance.add(instance);
+        //java나 .net으로 치면 model과 같다.
+        //models 폴더내에서 api 응답값을 받아서, model에 담는 기능을 만든 뒤(WebtoonModel.fromJson)
+        //api 응답값을 받는 쪽에서 해당 함수를 호출하여 사용
+      }
+      return webtoonInstance;
     }
     throw Error();
   }
