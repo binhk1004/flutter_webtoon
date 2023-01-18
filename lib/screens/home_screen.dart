@@ -2,39 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_webtoon/models/webtoon_model.dart';
 import 'package:flutter_webtoon/services/api_service.dart';
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-  //StatefulWidget로 변경한 이유는 state를 주어 데이터를 받은 뒤
-  //동적으로 화면이 바뀌어야 하기 때문
+class HomeScreen extends StatelessWidget {
+  HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  List<WebtoonModel> webtoons = [];
-  bool isLoading = true;
-
-  void waitForWebToons() async {
-    webtoons = await ApiService.getTodayToons();
-    isLoading = false;
-    setState(() {});
-    //waitForWebToons 함수에서 async를 사용하는 이유는
-    //getTodayToons는 비동기 함수이다. 즉 getTodayToons 함수가
-    //api에 요청을 보낸 뒤 응답값을 받고 모든 싸이클이 종료 된 뒤에
-    //작동해야 하기 때문에 async 키워드를 사용한다.
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    waitForWebToons();
-  }
+  final Future<List<WebtoonModel>> webtoons = ApiService.getTodayToons();
 
   @override
   Widget build(BuildContext context) {
-    print(webtoons);
-    print(isLoading);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -49,6 +23,75 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: true,
       ),
+      body: FutureBuilder(
+        future: webtoons,
+        //기다릴 데이터를 명명한다.
+        builder: (context, snapshot) {
+          //데이터가 도착 후 작업할 내용들인데, 여기서 snapshot은 future 상태를 말한다.
+          if (snapshot.hasData) {
+            return Column(
+              children: [
+                const SizedBox(
+                  height: 50,
+                ),
+                Expanded(
+                  child: makeList(snapshot),
+                )
+              ],
+            );
+          }
+          return const Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      ),
+      //StatelessWidget 을 쓸수 있는 이유는 FutureBuilder 때문
+      //FutureBuilder는 api로 부터 응답값이 넘어오기까지 기다려주는 역할을 해준다.
+      //그말인즉 응답값이 넘어 온 후 화면을 그려주는 역할
+    );
+  }
+
+  ListView makeList(AsyncSnapshot<List<WebtoonModel>> snapshot) {
+    return ListView.separated(
+      scrollDirection: Axis.horizontal,
+      itemCount: snapshot.data!.length,
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+      itemBuilder: (context, index) {
+        var webtoon = snapshot.data![index];
+        return Column(
+          children: [
+            Container(
+              width: 250,
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 7,
+                      offset: const Offset(10, 10),
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ]),
+              child: Image.network(webtoon.thumb),
+            ),
+            const SizedBox(
+              height: 10,
+            ),
+            Text(
+              webtoon.title,
+              style: const TextStyle(
+                fontSize: 22,
+              ),
+            ),
+          ],
+        );
+      },
+      separatorBuilder: (context, index) => const SizedBox(
+        width: 40,
+      ),
+      //itemBuilder의 역할은 전달받은 데이터를 다 만들어서 보여주는 것이 아닌
+      //스크롤 하는 만큼 즉 index의 수 만큼만 데이터를 보여주는 역할
+      //필요할때만
     );
   }
 }
