@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:flutter_webtoon/models/webtoon_detail_modal.dart';
 import 'package:http/http.dart' as http;
+import '../models/webtoon_episode_modal.dart';
 import '../models/webtoon_model.dart';
 
 class ApiService {
@@ -34,6 +36,31 @@ class ApiService {
         //api 응답값을 받는 쪽에서 해당 함수를 호출하여 사용
       }
       return webtoonInstance;
+    }
+    throw Error();
+  }
+
+  static Future<WebtoonDetailModel> getToonById(String id) async {
+    final url = Uri.parse("$baseUrl/$id");
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final webtoon = jsonDecode(response.body);
+      return WebtoonDetailModel.fromJson(webtoon);
+    }
+    throw Error();
+  }
+
+  static Future<List<WebtoonEpisodeModel>> getLatesEpisodesById(
+      String id) async {
+    List<WebtoonEpisodeModel> episodesInstances = [];
+    final url = Uri.parse("$baseUrl/$id/episodes");
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final episodes = jsonDecode(response.body);
+      for (var episode in episodes) {
+        episodesInstances.add(WebtoonEpisodeModel.fromJson(episode));
+      }
+      return episodesInstances;
     }
     throw Error();
   }
